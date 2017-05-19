@@ -1,51 +1,40 @@
 import React, { Component } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
-import TaskListItem from './components/TaskListItem';
+import { Alert, Modal, StyleSheet, View } from 'react-native';
+import ActionButton from 'react-native-action-button';
+import AddNewItem from './components/AddNewItem';
+import TaskList from './components/TaskList';
 
 class Application extends Component {
-  onCompleteItem (id, flag) {
-    Alert.alert(
-      'onCompleteItem',
-      `id=${id} flag=${flag}`,
-      [
-        { text: 'OK', onPress: () => console.log('OK')}
+  constructor (props) {
+    super(props);
+
+    this.state = {
+      items: [
+        { id: '1', text: 'First Item', completed: false },
+        { id: '2', text: 'Second Item', completed: true }
       ],
-      { cancelable: false }
-    );
+      modalVisible: false
+    }
   }
 
-  onSelectItem (id) {
-    Alert.alert(
-      'onSelectItem',
-      `id=${id}`,
-      [
-        { text: 'OK', onPress: () => console.log('OK')}
-      ],
-      { cancelable: false }
-    );
-  }
-
-  onDeleteItem (d) {
-    Alert.alert(
-      'onDeleteItem',
-      `id=${id}`,
-      [
-        { text: 'OK', onPress: () => console.log('OK')}
-      ],
-      { cancelable: false }
-    );
+  onNewItem (item) {
+    this.setState({
+      modalVisible: false,
+      items: [ ...this.state.items, item ]
+    });
+    console.log(`Added item ${JSON.stringify(item)}`);
   }
 
   render() {
-    const item = { id: 'newitem', text: 'First Item', completed: false };
-
     return (
       <View style={styles.container}>
-        <TaskListItem
-          item={item}
-          onCompleteItem={(id, flag) => this.onCompleteItem(id, flag)}
-          onSelectItem={(id) => this.onSelectItem(id)}
-          onDeleteItem={(id) => this.onDeleteItem(id)}/>
+        <Modal animationType="slide" transparent={false} visible={this.state.modalVisible} onRequestClose={() => this.setState({ modalVisible: false })}>
+          <AddNewItem onNewItem={(item) => this.onNewItem(item)} onCancel={() => this.setState({ modalVisible: false })} />
+        </Modal>
+        <TaskList items={this.state.items} />
+        <ActionButton
+          buttonColor="#9b59b6"
+          onPress={() => this.setState({ modalVisible: true })}/>
       </View>
     );
   }
@@ -57,7 +46,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     backgroundColor: '#F5FCFF',
-    marginTop: 16
+    marginTop: 22
   }
 });
 
