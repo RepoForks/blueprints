@@ -16,56 +16,60 @@ class TaskList extends Component {
         this.dataSource = new ListView.DataSource({
             rowHasChanged: (r1, r2) => r1 !== r2
         });
-        let rows = this.props.items.map(item => { return { id: item.id, text: item.text, completed: item.completed, action: false }; });
+        let rows = this.propsToRows(this.props);
         this.state = {
             rows: rows,
             dataSource: this.dataSource.cloneWithRows(rows)
         };
     }
 
+    propsToRows (props) {
+        return props.items.map(item => {
+            return {
+                id: item.id,
+                text: item.text,
+                completed: item.completed,
+                active: false
+            };
+        });
+    }
+
+    componentWillReceiveProps (props) {
+        let rows = this.propsToRows(props);
+        this.setState({
+            rows: rows,
+            dataSource: this.dataSource.cloneWithRows(rows)
+        });
+    }
+
     onCompleteItem (id, flag) {
-        Alert.alert(
-            'onCompleteItem',
-            `id=${id},flag=${flag}`,
-            [
-                { text: 'OK', onPress: () => console.log('OK Pressed') }
-            ],
-            { cancelable: false }
-        );
+        if (this.props.onCompleteItem !== null) {
+            this.props.onCompleteItem(id, flag);
+        }
     }
 
     onDeleteItem (item) {
-        Alert.alert(
-            'onDeleteItem',
-            `id=${item.id}`,
-            [
-                { text: 'OK', onPress: () => console.log('OK Pressed') }
-            ],
-            { cancelable: false }
-        );
-        // Close all the swipeouts
+        if (this.props.onDeleteItem !== null) {
+            this.props.onDeleteItem(item.id);
+        }
         this.onSwipeOut ("-1", "-1");
     }
 
     onSelectItem (id) {
-        Alert.alert(
-            'onSelectItem',
-            `id=${id}`,
-            [
-                { text: 'OK', onPress: () => console.log('OK Pressed') }
-            ],
-            { cancelable: false }
-        );
+        if (this.props.onSelectItem !== null) {
+            this.props.onSelectItem(id);
+        }
     }
 
     onSwipeOut (sectionID, rowID) {
-        let rows = this.state.rows;
-        for (let i = 0 ; i < rows.length ; i++) {
-            rows[i].active = (i.toString() === rowID);
+        let rows = this.propsToRows(this.props);
+        let i = parseInt(rowID);
+        if (i >= 0) {
+            rows[i].active = true;
         }
         this.setState({
             rows: rows,
-            dataSource: this.state.dataSource.cloneWithRows(this.props.items)
+            dataSource: this.state.dataSource.cloneWithRows(rows)
         });
     }
 
@@ -106,7 +110,16 @@ TaskList.propTypes = {
         id: PropTypes.string.isRequired,
         text: PropTypes.string.isRequired,
         completed: PropTypes.bool.isRequired
-    })).isRequired
+    })).isRequired,
+    onDeleteItem: PropTypes.func,
+    onCompleteItem: PropTypes.func,
+    onSelectItem: PropTypes.func
+};
+
+TaskList.defaultProps = {
+    onDeleteItem: null,
+    onCompleteItem: null,
+    onSelectItem: null
 };
 
 export default TaskList;

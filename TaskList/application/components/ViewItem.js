@@ -35,20 +35,21 @@ const styles = StyleSheet.create({
     }
 });
 
-class AddNewItem extends Component {
+class ViewItem extends Component {
     constructor (props) {
         super(props);
 
         this.state = {
-            text: '',
-            completed: false
+            id: this.props.item.id,
+            text: this.props.item.text || '',
+            completed: this.props.item.completed || false
         };
     }
 
-    onNewItem (e) {
+    onSaveItem (e) {
         e.preventDefault();
-        if (this.props.onNewItem !== null) {
-            this.props.onNewItem({ id: uuid.v4(), text: this.state.text, completed: this.state.completed });
+        if (this.props.onSaveItem !== null) {
+            this.props.onSaveItem({ id: this.state.id || uuid.v4(), text: this.state.text, completed: this.state.completed });
         }
     }
 
@@ -60,9 +61,10 @@ class AddNewItem extends Component {
     }
 
     render () {
+        const title = !this.state.id ? 'Add New Item' : 'Show Item';
         return (
             <View style={styles.container}>
-                <Text style={styles.title}>Add New Item</Text>
+                <Text style={styles.title}>{title}</Text>
                 <TextInput
                     onChangeText={(text) => this.setState({ text: text })}
                     placeholder="Enter Task"
@@ -83,7 +85,7 @@ class AddNewItem extends Component {
                 <View style={styles.buttons}>
                     <Button
                         title="OK"
-                        onPress={(e) => this.onNewItem(e)}/>
+                        onPress={(e) => this.onSaveItem(e)}/>
                     <Button
                         color='#888888'
                         title="Cancel"
@@ -94,14 +96,20 @@ class AddNewItem extends Component {
     }
 }
 
-AddNewItem.propTypes = {
-    onNewItem: PropTypes.func,
+ViewItem.propTypes = {
+    item: PropTypes.shape({
+        id: PropTypes.string,
+        text: PropTypes.string,
+        completed: PropTypes.bool
+    }),
+    onSaveItem: PropTypes.func,
     onCancel: PropTypes.func
 };
 
-AddNewItem.defaultProps = {
-    onNewItem: null,
+ViewItem.defaultProps = {
+    item: {},
+    onSaveItem: null,
     onCancel: null
 };
 
-export default AddNewItem;
+export default ViewItem;
