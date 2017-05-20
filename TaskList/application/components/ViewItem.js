@@ -103,7 +103,7 @@ ViewItem.propTypes = {
         completed: PropTypes.bool
     }),
     onSaveItem: PropTypes.func,
-    onCancel: Prssh-keygen -t rsa opTypes.func
+    onCancel: PropTypes.func
 };
 
 ViewItem.defaultProps = {
