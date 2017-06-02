@@ -105,16 +105,16 @@ public class WeatherResponse {
      */
     public class Main {
         @SerializedName("temp") private double temp;
-        @SerializedName("pressure") private int pressure;
-        @SerializedName("humidity") private int humidity;
+        @SerializedName("pressure") private double pressure;
+        @SerializedName("humidity") private double humidity;
         @SerializedName("temp_min") private double temp_min;
         @SerializedName("temp_max") private double temp_max;
-        @SerializedName("sea_level") private int sea_level;
-        @SerializedName("grnd_level") private int ground_level;
+        @SerializedName("sea_level") private double sea_level;
+        @SerializedName("grnd_level") private double ground_level;
 
         public Range getTemperature() { return new Range(temp, temp_min, temp_max); }
         public Pressure getPressure() { return new Pressure(pressure, sea_level, ground_level); }
-        public int getHumidity() { return humidity; }
+        public double getHumidity() { return humidity; }
     }
 
     /**
@@ -127,17 +127,17 @@ public class WeatherResponse {
     }
 
     public class Pressure {
-        private int current, sealevel, groundlevel;
+        private double current, sealevel, groundlevel;
 
-        public Pressure(int current, int sealevel, int groundlevel) {
+        public Pressure(double current, double sealevel, double groundlevel) {
             this.current = current;
             this.sealevel = sealevel;
             this.groundlevel = groundlevel;
         }
 
-        public int getCurrentPressure() { return current; }
-        public int getSeaLevelPressure() { return sealevel; }
-        public int getGroundLevelPressure() { return groundlevel; }
+        public double getCurrentPressure() { return current; }
+        public double getSeaLevelPressure() { return sealevel; }
+        public double getGroundLevelPressure() { return groundlevel; }
     }
 
     public class Range {
@@ -190,9 +190,9 @@ public class WeatherResponse {
      */
     public class Wind {
         @SerializedName("speed") private double speed;
-        @SerializedName("deg") private int direction;
+        @SerializedName("deg") private double direction;
 
         public double getSpeed() { return speed; }
-        public int getDirection() { return direction; }
+        public double getDirection() { return direction; }
     }
 }

@@ -30,7 +30,7 @@ public class WeatherResponseTest {
                 "  \"visibility\": 10000,\n" +
                 "  \"wind\": {\n" +
                 "    \"speed\": 4.1,\n" +
-                "    \"deg\": 80\n" +
+                "    \"deg\": 80.001\n" +
                 "  },\n" +
                 "  \"clouds\": {\n" +
                 "    \"all\": 90\n" +
@@ -63,11 +63,11 @@ public class WeatherResponseTest {
         assertEquals(280.32, response.getMain().getTemperature().getCurrentValue(), 0.001);
         assertEquals(279.15, response.getMain().getTemperature().getMinimumValue(), 0.001);
         assertEquals(281.15, response.getMain().getTemperature().getMaximumValue(), 0.001);
-        assertEquals(1012, response.getMain().getPressure().getCurrentPressure());
-        assertEquals(81, response.getMain().getHumidity());
+        assertEquals(1012.00, response.getMain().getPressure().getCurrentPressure(), 0.001);
+        assertEquals(81.00, response.getMain().getHumidity(), 0.001);
 
         assertEquals(4.1, response.getWind().getSpeed(), 0.001);
-        assertEquals(80, response.getWind().getDirection());
+        assertEquals(80.001, response.getWind().getDirection(), 0.001);
 
         assertEquals(90, response.getClouds().getCloudiness());
 
