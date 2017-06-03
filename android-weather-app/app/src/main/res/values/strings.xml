@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Yet Another Weather App</string>
+    <string name="default_city_name">Seattle, WA</string>
+    <string name="default_updated">Never</string>
+    <string name="default_temperature">70.0°F</string>
+    <string name="default_details">Light Drizzle</string>
+    <string name="default_weather"></string>
 </resources>
