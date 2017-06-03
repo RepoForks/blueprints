@@ -15,7 +15,7 @@ public class WeatherManager {
     /**
      * The API Key for the Open Weather Map API.  Replace this with your own key
      */
-    private final static String API_KEY = "f27b22f8035e3756d3e146ee7ae948ca";
+    private final static String API_KEY = "17f8fdc37d63d8af51696e5b468da655";
 
     /**
      * The Base URL of the Open Weather Map API.

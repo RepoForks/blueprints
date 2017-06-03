@@ -78,35 +78,35 @@ public class MainActivity extends AppCompatActivity {
 
         private String convertWeather(String iconCode) {
             boolean isDay = iconCode.charAt(2) == 'd';
-            String weatherIcon = "&#xf07b;";
+            String weatherIcon = "f07b";
             int icon = Integer.parseInt(iconCode.substring(0,2), 10);
 
             switch (icon) {
                 case 1:
-                    weatherIcon = isDay ? "&#xf00d;" : "&#xf02e;";
+                    weatherIcon = isDay ? "f00d" : "f02e";
                     break;
                 case 2:
                 case 3:
                 case 4:
-                    weatherIcon = isDay ? "&#xf002;" : "&#xf086;";
+                    weatherIcon = isDay ? "f002" : "f086";
                     break;
                 case 9:
-                    weatherIcon = isDay ? "&#xf009;" : "&#xf029;";
+                    weatherIcon = isDay ? "f009" : "f029";
                     break;
                 case 10:
-                    weatherIcon = isDay ? "&#xf008;" : "&#xf028;";
+                    weatherIcon = isDay ? "f008" : "f028";
                     break;
                 case 11:
-                    weatherIcon = isDay ? "&#xf005;" : "&#xf025;";
+                    weatherIcon = isDay ? "f005" : "f025";
                     break;
                 case 13:
-                    weatherIcon = isDay ? "&#xf00a;" : "&#xf02a;";
+                    weatherIcon = isDay ? "f00a" : "f02a";
                     break;
                 case 50:
-                    weatherIcon = "&#xf014;";
+                    weatherIcon = "&#xf014";
                     break;
             }
-            return  weatherIcon;
+            return  "&#x" + weatherIcon + ";";
         }
     }
 }
