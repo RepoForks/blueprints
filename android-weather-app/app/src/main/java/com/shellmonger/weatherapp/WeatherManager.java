@@ -20,7 +20,7 @@ public class WeatherManager {
     /**
      * The Base URL of the Open Weather Map API.
      */
-    private final static String BASE_URL = "http://samples.openweathermap.org/data/2.5/weather";
+    private final static String BASE_URL = "http://api.openweathermap.org/data/2.5/weather";
 
     /**
      * The HTTP Client implementation to use

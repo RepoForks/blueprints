@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Get the weather from the API
         GetWeatherAsyncTask task = new GetWeatherAsyncTask();
-        task.execute(new String[] { "Seattle" });
+        task.execute(new String[] { "Seattle,US" });
     }
 
     class GetWeatherAsyncTask extends AsyncTask<String,Void,WeatherResponse> {
