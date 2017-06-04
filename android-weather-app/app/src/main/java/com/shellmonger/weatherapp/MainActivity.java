@@ -15,6 +15,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import com.shellmonger.weatherapp.models.WeatherRequest;
 import com.shellmonger.weatherapp.models.WeatherResponse;
 
 public class MainActivity extends AppCompatActivity {
@@ -23,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     Typeface weatherFont;
     Timer refreshTimer;
     Handler timerHandler;
+    WeatherRequest currentRequest;
 
     boolean updateInProgress = false;
 
@@ -47,6 +49,9 @@ public class MainActivity extends AppCompatActivity {
         weatherFont = Typeface.createFromAsset(getAssets(), "fonts/weathericons-regular-webfont.ttf");
         weatherIcon.setTypeface(weatherFont);
 
+        // Set up the current request
+        currentRequest = new WeatherRequest("Seattle,US");
+
         // Set up the timer
         timerHandler = new Handler() {
             public void handleMessage(Message msg) {
@@ -63,11 +68,11 @@ public class MainActivity extends AppCompatActivity {
     public void onRefreshClick(View view) {
         if (!updateInProgress) {
             GetWeatherAsyncTask task = new GetWeatherAsyncTask();
-            task.execute(new String[]{"Seattle,US"});
+            task.execute(new WeatherRequest[] { currentRequest });
         }
     }
 
-    class GetWeatherAsyncTask extends AsyncTask<String,Void,WeatherResponse> {
+    class GetWeatherAsyncTask extends AsyncTask<WeatherRequest,Void,WeatherResponse> {
         @Override
         protected void onPreExecute() {
             c_updated.setText("Updating...");
@@ -75,10 +80,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected WeatherResponse doInBackground(String... cities) {
+        protected WeatherResponse doInBackground(WeatherRequest... cities) {
             try {
-                WeatherManager manager = new WeatherManager();
-                return manager.getWeatherByCityName(cities[0]);
+                return cities[0].getWeather();
             } catch (WeatherException ex) {
                 return null;
             }
