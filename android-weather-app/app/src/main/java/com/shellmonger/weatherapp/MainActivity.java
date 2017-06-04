@@ -1,6 +1,8 @@
 package com.shellmonger.weatherapp;
 
 import java.text.SimpleDateFormat;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.support.v7.app.AppCompatActivity;
 import android.graphics.Color;
@@ -11,18 +13,27 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import com.shellmonger.weatherapp.models.WeatherResponse;
 
 public class MainActivity extends AppCompatActivity {
     ImageView c_refresh;
     TextView c_city, c_details, c_temperature, c_updated, weatherIcon;
     Typeface weatherFont;
-    boolean updateInProgress;
+    Timer refreshTimer;
+    Handler timerHandler;
+
+    boolean updateInProgress = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if(!(Thread.getDefaultUncaughtExceptionHandler() instanceof CustomExceptionHandler)) {
+            Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler(this));
+        }
 
         // Get the ID of each field that we want to modify
         c_city = (TextView)findViewById(R.id.city_field);
@@ -36,13 +47,24 @@ public class MainActivity extends AppCompatActivity {
         weatherFont = Typeface.createFromAsset(getAssets(), "fonts/weathericons-regular-webfont.ttf");
         weatherIcon.setTypeface(weatherFont);
 
-        // Get the weather from the API
-        onRefreshClick(null);
+        // Set up the timer
+        timerHandler = new Handler() {
+            public void handleMessage(Message msg) {
+                onRefreshClick(null);
+            }
+        };
+        refreshTimer = new Timer();
+        TimerTask refreshTimerTask = new TimerTask() {
+            public void run() { timerHandler.obtainMessage(1).sendToTarget(); }
+        };
+        refreshTimer.schedule(refreshTimerTask, 0L, 300000L);
     }
 
     public void onRefreshClick(View view) {
-        GetWeatherAsyncTask task = new GetWeatherAsyncTask();
-        task.execute(new String[] { "Seattle,US" });
+        if (!updateInProgress) {
+            GetWeatherAsyncTask task = new GetWeatherAsyncTask();
+            task.execute(new String[]{"Seattle,US"});
+        }
     }
 
     class GetWeatherAsyncTask extends AsyncTask<String,Void,WeatherResponse> {
