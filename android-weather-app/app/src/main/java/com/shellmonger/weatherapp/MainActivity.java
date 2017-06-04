@@ -3,16 +3,21 @@ package com.shellmonger.weatherapp;
 import java.text.SimpleDateFormat;
 
 import android.support.v7.app.AppCompatActivity;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.Html;
+import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import com.shellmonger.weatherapp.models.WeatherResponse;
 
 public class MainActivity extends AppCompatActivity {
+    ImageView c_refresh;
     TextView c_city, c_details, c_temperature, c_updated, weatherIcon;
     Typeface weatherFont;
+    boolean updateInProgress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
         c_details = (TextView)findViewById(R.id.details_field);
         c_temperature = (TextView)findViewById(R.id.current_temperature_field);
         c_updated = (TextView)findViewById(R.id.updated_field);
+        c_refresh = (ImageView)findViewById(R.id.refresh_button);
         weatherIcon = (TextView)findViewById(R.id.weather_icon);
 
         // Set the font to be used by the weather icon area
@@ -31,6 +37,10 @@ public class MainActivity extends AppCompatActivity {
         weatherIcon.setTypeface(weatherFont);
 
         // Get the weather from the API
+        onRefreshClick(null);
+    }
+
+    public void onRefreshClick(View view) {
         GetWeatherAsyncTask task = new GetWeatherAsyncTask();
         task.execute(new String[] { "Seattle,US" });
     }
@@ -39,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPreExecute() {
             c_updated.setText("Updating...");
+            setUpdateInProgress(true);
         }
 
         @Override
@@ -74,6 +85,13 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 c_updated.setText("Fetch Failed");
             }
+            setUpdateInProgress(false);
+        }
+
+        private void setUpdateInProgress(boolean v) {
+            updateInProgress = v;
+            c_refresh.setClickable(!v);
+            c_refresh.setColorFilter(v ? Color.GRAY : Color.WHITE);
         }
 
         private String convertWeather(String iconCode) {
