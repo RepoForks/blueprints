@@ -72,7 +72,7 @@ public class WeatherManager {
      * @throws WeatherException if the request could not be completed
      */
     public WeatherResponse getWeatherByGps(double longitude, double latitude) throws WeatherException {
-        return getWeather("lat=" + latitude + "&lon=" + longitude);
+        return getWeather(String.format("lat=%.2f&lon=%.2f", latitude, longitude));
     }
 
     /**

@@ -4,9 +4,16 @@ import java.text.SimpleDateFormat;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.text.Html;
 import android.view.View;
 import android.widget.ImageView;
@@ -15,18 +22,26 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
+import android.widget.Toast;
+
 import com.shellmonger.weatherapp.models.WeatherRequest;
 import com.shellmonger.weatherapp.models.WeatherResponse;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements LocationListener {
+    // Constant for validating that permissions are available
+    private static final int PERMS_REQUEST_GPS_ACCESS = 2001;
+
     ImageView c_refresh;
     TextView c_city, c_details, c_temperature, c_updated, weatherIcon;
     Typeface weatherFont;
     Timer refreshTimer;
     Handler timerHandler;
     WeatherRequest currentRequest;
+    LocationManager locationManager;
 
-    boolean updateInProgress = false;
+    boolean updateInProgress = false,
+        isLocationEnabled = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,8 +64,15 @@ public class MainActivity extends AppCompatActivity {
         weatherFont = Typeface.createFromAsset(getAssets(), "fonts/weathericons-regular-webfont.ttf");
         weatherIcon.setTypeface(weatherFont);
 
-        // Set up the current request
+        // Set up the default request
         currentRequest = new WeatherRequest("Seattle,US");
+
+        // Determine if the app has permission - if so, then set up the location manager, otherwise ask for permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.ACCESS_FINE_LOCATION }, PERMS_REQUEST_GPS_ACCESS);
+        } else {
+            setUpLocationManager();
+        }
 
         // Set up the timer
         timerHandler = new Handler() {
@@ -65,11 +87,63 @@ public class MainActivity extends AppCompatActivity {
         refreshTimer.schedule(refreshTimerTask, 0L, 300000L);
     }
 
+    public void setUpLocationManager() {
+        // Set up the location manager
+        locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
+        isLocationEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        if (isLocationEnabled) {
+            this.onProviderEnabled(LocationManager.GPS_PROVIDER);
+        } else {
+            Log.w("Location", "Location/GPS is not enabled");
+        }
+    }
+
     public void onRefreshClick(View view) {
         if (!updateInProgress) {
             GetWeatherAsyncTask task = new GetWeatherAsyncTask();
             task.execute(new WeatherRequest[] { currentRequest });
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        if (requestCode == PERMS_REQUEST_GPS_ACCESS && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            Log.w("Location", "Permission was granted");
+            setUpLocationManager();
+        }
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+        if (provider == LocationManager.GPS_PROVIDER) {
+            Log.w("Location", "Enabling GPS Provider");
+            isLocationEnabled = true;
+            try {
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 60000L, 100, this);
+                onLocationChanged(locationManager.getLastKnownLocation(provider));
+            } catch (SecurityException ex) {
+                Toast.makeText(this, "You need the GPS permission", Toast.LENGTH_LONG);
+            }
+        }
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+        if (provider == LocationManager.GPS_PROVIDER) {
+            Log.w("Location", "Disabling GPS Provider");
+            isLocationEnabled = false;
+        }
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Log.w("Location", "Location changed - refreshing data");
+        currentRequest = new WeatherRequest(location);
+        onRefreshClick(null);
     }
 
     class GetWeatherAsyncTask extends AsyncTask<WeatherRequest,Void,WeatherResponse> {
