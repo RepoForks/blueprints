@@ -1,22 +1,20 @@
 package com.shellmonger.mymemoapp.db;
 
-import android.content.ContentValues;
 import android.content.Context;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
-import com.shellmonger.mymemoapp.db.DatabaseOpenHelper;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class DatabaseAccess {
-    private SQLiteDatabase database;
-    private DatabaseOpenHelper openHelper;
+    private Context context;
     private static volatile DatabaseAccess instance;
 
+    /**
+     * Create a new DatabaseAccess instance.  This is part of the Singleton pattern
+     * @param context
+     */
     private DatabaseAccess(Context context) {
-        this.openHelper = new DatabaseOpenHelper(context);
+        this.context = context;
     }
 
     public static synchronized DatabaseAccess getInstance(Context context) {
@@ -26,47 +24,44 @@ public class DatabaseAccess {
         return instance;
     }
 
+    /**
+     * Open the database, if necessary.
+     */
     public void open() {
-        this.database = openHelper.getWritableDatabase();
     }
 
+    /**
+     * Close the database, if necessary.
+     */
     public void close() {
-        if (database != null) {
-            this.database.close();
-        }
     }
 
+    /**
+     * Save a new record to the database.
+     * @param memo the record to save
+     */
     public void save(Memo memo) {
-        ContentValues values = new ContentValues();
-        values.put("date", memo.getTime());
-        values.put("memo", memo.getText());
-        database.insert(DatabaseOpenHelper.TABLE, null, values);
     }
 
+    /**
+     * Update an existing record in the database
+     * @param memo the record to save
+     */
     public void update(Memo memo) {
-        ContentValues values = new ContentValues();
-        values.put("date", new Date().getTime());
-        values.put("memo", memo.getText());
-        String date = Long.toString(memo.getTime());
-        database.update(DatabaseOpenHelper.TABLE, values, "date = ?", new String[]{date});
     }
 
+    /**
+     * Delete an existing record in the database
+     * @param memo the record to delete
+     */
     public void delete(Memo memo) {
-        String date = Long.toString(memo.getTime());
-        database.delete(DatabaseOpenHelper.TABLE, "date = ?", new String[]{date});
     }
 
-    public List getAllMemos() {
-        List memos = new ArrayList<>();
-        Cursor cursor = database.rawQuery("SELECT * From memo ORDER BY date DESC", null);
-        cursor.moveToFirst();
-        while (!cursor.isAfterLast()) {
-            long time = cursor.getLong(0);
-            String text = cursor.getString(1);
-            memos.add(new Memo(time, text));
-            cursor.moveToNext();
-        }
-        cursor.close();
-        return memos;
+    /**
+     * Get a list of all the memos in the database
+     * @return a list of memos
+     */
+    public List<Memo> getAllMemos() {
+        return new ArrayList<Memo>();
     }
 }
