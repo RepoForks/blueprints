@@ -24,41 +24,92 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.widget.Toast;
+import butterknife.BindView;
+import butterknife.ButterKnife;
 
 import com.shellmonger.weatherapp.models.WeatherRequest;
 import com.shellmonger.weatherapp.models.WeatherResponse;
 
 public class MainActivity extends AppCompatActivity implements LocationListener {
-    // Constant for validating that permissions are available
+    /**
+     * Message ID passed to callback when requesting GPS Access
+     */
     private static final int PERMS_REQUEST_GPS_ACCESS = 2001;
 
-    ImageView c_refresh;
-    TextView c_city, c_details, c_temperature, c_updated, weatherIcon;
+    /**
+     * The Refresh Button
+     */
+    @BindView(R.id.refresh_button) ImageView c_refresh;
+
+    /**
+     * The City Name
+     */
+    @BindView(R.id.city_field) TextView c_city;
+
+    /**
+     * The Weather Details
+     */
+    @BindView(R.id.details_field) TextView c_details;
+
+    /**
+     * The current temperature
+     */
+    @BindView(R.id.current_temperature_field) TextView c_temperature;
+
+    /**
+     * The Last Updated timestamp
+     */
+    @BindView(R.id.updated_field) TextView c_updated;
+
+    /**
+     * The big weather icon
+     */
+    @BindView(R.id.weather_icon) TextView weatherIcon;
+
+    /**
+     * The font used for the weather icon
+     */
     Typeface weatherFont;
+
+    /**
+     * The timer used for the periodic refresh of the weather
+     */
     Timer refreshTimer;
+
+    /**
+     * The global handler for refreshing the data from the async service
+     */
     Handler timerHandler;
+
+    /**
+     * The current request data for the weather update
+     */
     WeatherRequest currentRequest;
+
+    /**
+     * The manager for handling GPS updates
+     */
     LocationManager locationManager;
 
-    boolean updateInProgress = false,
-        isLocationEnabled = false;
+    /**
+     * True if an update is in progress right now
+     */
+    boolean updateInProgress = false;
+
+    /**
+     * True if GPS access is enabled
+     */
+    boolean isLocationEnabled = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ButterKnife.bind(this);
 
         if(!(Thread.getDefaultUncaughtExceptionHandler() instanceof CustomExceptionHandler)) {
             Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler(this));
         }
-
-        // Get the ID of each field that we want to modify
-        c_city = (TextView)findViewById(R.id.city_field);
-        c_details = (TextView)findViewById(R.id.details_field);
-        c_temperature = (TextView)findViewById(R.id.current_temperature_field);
-        c_updated = (TextView)findViewById(R.id.updated_field);
-        c_refresh = (ImageView)findViewById(R.id.refresh_button);
-        weatherIcon = (TextView)findViewById(R.id.weather_icon);
 
         // Set the font to be used by the weather icon area
         weatherFont = Typeface.createFromAsset(getAssets(), "fonts/weathericons-regular-webfont.ttf");
