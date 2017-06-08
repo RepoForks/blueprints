@@ -2,6 +2,7 @@ package com.shellmonger.mymemoapp;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -12,24 +13,31 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import com.amazonaws.mobileconnectors.dynamodbv2.document.datatype.Document;
 
 import com.shellmonger.mymemoapp.db.DatabaseAccess;
-import com.shellmonger.mymemoapp.db.Memo;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private ListView listView;
     private Button btnAdd;
-    private DatabaseAccess databaseAccess;
-    private List<Memo> memos;
+    private List<Document> memos;
+    private DateFormat formatter = new SimpleDateFormat("EEEEE MMMMM yyyy HH:mm:ss.SSSZ");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        this.databaseAccess = DatabaseAccess.getInstance(this);
+        if (!(Thread.getDefaultUncaughtExceptionHandler() instanceof CustomExceptionHandler)) {
+            Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler(this));
+        }
 
         this.listView = (ListView) findViewById(R.id.listView);
         this.btnAdd = (Button) findViewById(R.id.btnAdd);
@@ -44,15 +52,9 @@ public class MainActivity extends AppCompatActivity {
         this.listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Memo memo = memos.get(position);
-                TextView txtMemo = (TextView) view.findViewById(R.id.txtMemo);
-                if (memo.isFullDisplayed()) {
-                    txtMemo.setText(memo.getShortText());
-                    memo.setFullDisplayed(false);
-                } else {
-                    txtMemo.setText(memo.getText());
-                    memo.setFullDisplayed(true);
-                }
+            Document memo = memos.get(position);
+            TextView txtMemo = (TextView) view.findViewById(R.id.txtMemo);
+            txtMemo.setText(asShortString(memo.get("content").asString()));
             }
         });
     }
@@ -60,11 +62,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        databaseAccess.open();
-        this.memos = databaseAccess.getAllMemos();
-        databaseAccess.close();
-        MemoAdapter adapter = new MemoAdapter(this, memos);
-        this.listView.setAdapter(adapter);
+        GetAllItemsAsyncTask task = new GetAllItemsAsyncTask();
+        task.execute();
     }
 
     public void onAddClicked() {
@@ -72,26 +71,83 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    public void onDeleteClicked(Memo memo) {
-        databaseAccess.open();
-        databaseAccess.delete(memo);
-        databaseAccess.close();
+    public void onDeleteClicked(Document memo) {
+        DeleteItemAsyncTask task = new DeleteItemAsyncTask();
+        task.execute(new Document[] { memo });
 
-        ArrayAdapter<Memo> adapter = (ArrayAdapter<Memo>) listView.getAdapter();
-        adapter.remove(memo);
-        adapter.notifyDataSetChanged();
     }
 
-    public void onEditClicked(Memo memo) {
+    public void onEditClicked(Document memo) {
         Intent intent = new Intent(this, EditActivity.class);
-        intent.putExtra("MEMO", memo);
+        intent.putExtra("MEMO", memo.get("noteId").asString());
         startActivity(intent);
     }
 
-    private class MemoAdapter extends ArrayAdapter<Memo> {
+    public String asShortString(String text) {
+        String temp = text.replaceAll("\n", " ");
+        if (temp.length() > 25) {
+            return temp.substring(0, 25) + "...";
+        } else {
+            return temp;
+        }
+    }
 
+    public String asDateString(long milliseconds) {
+        Date date = new Date(milliseconds);
+        return formatter.format(date);
+    }
 
-        public MemoAdapter(Context context, List<Memo> objects) {
+    public void populateListAdapter(List<Document> memos) {
+        this.memos = memos;
+        MemoAdapter adapter = new MemoAdapter(this, memos);
+        listView.setAdapter(adapter);
+    }
+
+    public void removeDocumentsFromAdapter(List<Document> memos) {
+        MemoAdapter adapter = (MemoAdapter) listView.getAdapter();
+        for (Iterator<Document> i = memos.iterator(); i.hasNext(); ) {
+            Document memo = i.next();
+            adapter.remove(memo);
+        }
+        adapter.notifyDataSetChanged();
+    }
+
+    private class GetAllItemsAsyncTask extends AsyncTask<Void, Void, List<Document>> {
+        @Override
+        protected List<Document> doInBackground(Void... params) {
+            DatabaseAccess databaseAccess = DatabaseAccess.getInstance(MainActivity.this);
+            return databaseAccess.getAllMemos();
+        }
+
+        @Override
+        protected void onPostExecute(List<Document> documents) {
+            if (documents != null) {
+                populateListAdapter(documents);
+            }
+        }
+    }
+
+    private class DeleteItemAsyncTask extends AsyncTask<Document, Void, List<Document>> {
+        @Override
+        protected List<Document> doInBackground(Document... documents) {
+            DatabaseAccess databaseAccess = DatabaseAccess.getInstance(MainActivity.this);
+            ArrayList<Document> deletedDocuments = new ArrayList<Document>();
+
+            for (int i = 0 ; i < documents.length ; i++) {
+                databaseAccess.delete(documents[i]);
+                deletedDocuments.add(documents[i]);
+            }
+            return deletedDocuments;
+        }
+
+        @Override
+        protected void onPostExecute(List<Document> documents) {
+            removeDocumentsFromAdapter(documents);
+        }
+    }
+
+    private class MemoAdapter extends ArrayAdapter<Document> {
+        public MemoAdapter(Context context, List<Document> objects) {
             super(context, 0, objects);
         }
 
@@ -106,10 +162,9 @@ public class MainActivity extends AppCompatActivity {
             TextView txtDate = (TextView) convertView.findViewById(R.id.txtDate);
             TextView txtMemo = (TextView) convertView.findViewById(R.id.txtMemo);
 
-            final Memo memo = memos.get(position);
-            memo.setFullDisplayed(false);
-            txtDate.setText(memo.getDate());
-            txtMemo.setText(memo.getShortText());
+            final Document memo = memos.get(position);
+            txtDate.setText(asDateString(memo.get("creationDate").asLong()));
+            txtMemo.setText(asShortString(memo.get("content").asString()));
             btnEdit.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
