@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">RelativeLayoutExample</string>
+    <string name="information">Information</string>
+    <string name="threedots">...</string>
+    <string name="add_location">Add Location</string>
+    <string name="high_temp_label">H</string>
+    <string name="low_temp_label">L</string>
+    <string name="default_conditions">Light Snow</string>
+    <string name="default_location">Chicago, IL</string>
+    <string name="default_day1">Mon</string>
+    <string name="default_day2">Tue</string>
+    <string name="default_day3">Wed</string>
+</resources>
