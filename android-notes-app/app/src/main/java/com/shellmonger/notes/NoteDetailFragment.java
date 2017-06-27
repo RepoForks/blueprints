@@ -1,13 +1,11 @@
 package com.shellmonger.notes;
 
-import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Handler;
-import android.support.design.widget.CollapsingToolbarLayout;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -143,8 +141,17 @@ public class NoteDetailFragment extends Fragment {
                 contentResolver.update(itemUri, values, null, null);
             } else {
                 itemUri = contentResolver.insert(NotesContentContract.Notes.CONTENT_URI, values);
+                isUpdate = true;    // Anything from now on is an update
             }
         }
+    }
+
+    /**
+     * Returns the current note.
+     * @return the current data
+     */
+    public Note getNote() {
+        return mItem;
     }
 
     @Override

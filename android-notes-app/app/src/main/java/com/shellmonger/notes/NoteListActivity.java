@@ -1,16 +1,27 @@
 package com.shellmonger.notes;
 
 import android.app.LoaderManager;
+import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -96,7 +107,62 @@ public class NoteListActivity
         NotesAdapter adapter = new NotesAdapter(this, null);
         notesList.setAdapter(adapter);
 
-        // Kick of the data loader for the RecyclerView
+        // Initialize the swipe-to-delete handler
+        ItemTouchHelper.SimpleCallback swipeHandler = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+            Drawable background, xMark;
+            int xMarkMargin;
+            boolean initialized;
+
+            private void initialize() {
+                background = new ColorDrawable(Color.RED);
+                xMark = ContextCompat.getDrawable(NoteListActivity.this, R.drawable.ic_clear_24dp);
+                xMark.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_ATOP);
+                xMarkMargin = (int) NoteListActivity.this.getResources().getDimension(R.dimen.ic_clear_margin);
+                initialized = true;
+            }
+
+            @Override
+            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                ((NotesAdapter) notesList.getAdapter()).remove((NoteViewHolder) viewHolder);
+            }
+
+            @Override
+            public void onChildDraw(Canvas c, RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
+                // If the item has already been swiped away, ignore
+                if (viewHolder.getAdapterPosition() == -1) return;
+
+                // If not initialized, then do so
+                if (!initialized) initialize();
+
+                int vr = viewHolder.itemView.getRight();
+                int vt = viewHolder.itemView.getTop();
+                int vb = viewHolder.itemView.getBottom();
+                int vh = vb - vt;
+                int iw = xMark.getIntrinsicWidth();
+                int ih = xMark.getIntrinsicWidth();
+
+                background.setBounds(vr + (int)dX, vt, vr, vb);
+                background.draw(c);
+
+                int xMarkLeft = vr - xMarkMargin - iw;
+                int xMarkRight = vr - xMarkMargin;
+                int xMarkTop = vt + (vh - ih)/2;
+                int xMarkBottom = xMarkTop + ih;
+                xMark.setBounds(xMarkLeft, xMarkTop, xMarkRight, xMarkBottom);
+                xMark.draw(c);
+
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
+            }
+        };
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(swipeHandler);
+        itemTouchHelper.attachToRecyclerView(notesList);
+
+        // Kick off the data loader for the RecyclerView
         getLoaderManager().initLoader(NOTES_LOADER, null, this);
     }
 
@@ -106,7 +172,7 @@ public class NoteListActivity
      *
      * @param id The ID - should always be NOTES_LOADER in this edition
      * @param args any arguments - should always be null in this edition
-     * @return
+     * @return the loader
      */
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
@@ -140,11 +206,11 @@ public class NoteListActivity
     /**
      * The NotesAdapter is a data provider for linking the notes content provider to the UI.
      */
-    public class NotesAdapter extends RecyclerView.Adapter<NoteViewHolder> {
+    private class NotesAdapter extends RecyclerView.Adapter<NoteViewHolder> {
         Cursor dataCursor;
         Context context;
 
-        public NotesAdapter(Context mContext, Cursor cursor) {
+        NotesAdapter(Context mContext, Cursor cursor) {
             dataCursor = cursor;
             context = mContext;
         }
@@ -201,7 +267,7 @@ public class NoteListActivity
          * @param cursor the new cursor
          * @return the old cursor
          */
-        public Cursor swapCursor(Cursor cursor) {
+        Cursor swapCursor(Cursor cursor) {
             if (dataCursor == cursor) {
                 return null;
             }
@@ -211,6 +277,33 @@ public class NoteListActivity
                 this.notifyDataSetChanged();
             }
             return oldCursor;
+        }
+
+        /**
+         * Remove the element in the list.
+         * @param holder the viewholder to delete
+         */
+        void remove(final NoteViewHolder holder) {
+            if (mTwoPane) {
+                // Check to see if the current fragment is the record we are deleting
+                Fragment currentFragment = NoteListActivity.this.getSupportFragmentManager().findFragmentById(R.id.note_detail_container);
+                if (currentFragment instanceof NoteDetailFragment) {
+                    String deletedNote = holder.getNote().getNoteId();
+                    String displayedNote = ((NoteDetailFragment) currentFragment).getNote().getNoteId();
+                    if (deletedNote.equals(displayedNote)) {
+                        getSupportFragmentManager().beginTransaction().remove(currentFragment).commit();
+                    }
+                }
+            }
+
+            // Remove the item from the database
+            ContentResolver resolver = getContentResolver();
+            int position = holder.getAdapterPosition();
+            Uri itemUri = ContentUris.withAppendedId(NotesContentContract.Notes.CONTENT_URI, holder.getNote().getId());
+            int count = resolver.delete(itemUri, null, null);
+            if (count > 0) {
+                notifyItemRemoved(position);
+            }
         }
     }
 }

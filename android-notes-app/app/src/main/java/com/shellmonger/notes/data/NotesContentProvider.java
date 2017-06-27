@@ -144,7 +144,7 @@ public class NotesContentProvider extends ContentProvider {
                     notifyAllListeners(item);
                     return item;
                 }
-                throw new SQLException("Error inserting for URI " + uri);
+                throw new SQLException(String.format("Error inserting for URI %s - id = %d", uri, id));
             default:
                 throw new IllegalArgumentException("Unsupported URI: " + uri);
         }
