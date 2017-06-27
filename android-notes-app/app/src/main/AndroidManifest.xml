@@ -26,8 +26,13 @@
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.shellmonger.notes.NoteListActivity" />
+                android:value=".NoteListActivity" />
         </activity>
+
+        <provider
+            android:name=".data.NotesContentProvider"
+            android:authorities="com.shellmonger.notes.provider"
+            android:label="NotesProvider" />
     </application>
 
 </manifest>

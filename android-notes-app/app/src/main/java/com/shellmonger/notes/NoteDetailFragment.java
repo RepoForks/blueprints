@@ -1,16 +1,25 @@
 package com.shellmonger.notes;
 
 import android.app.Activity;
+import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Handler;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
+import android.widget.EditText;
 
 import com.shellmonger.notes.data.Note;
-import com.shellmonger.notes.dummy.DummyContent;
+import com.shellmonger.notes.data.NotesContentContract;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 /**
  * A fragment representing a single Note detail screen.
@@ -29,6 +38,36 @@ public class NoteDetailFragment extends Fragment {
      * The dummy content this fragment is presenting.
      */
     private Note mItem;
+    private long itemId = -1;
+    private Uri itemUri;
+
+    /**
+     * Content Resolver
+     */
+    private ContentResolver contentResolver;
+
+    /**
+     * Is this an insert or an update?
+     */
+    private boolean isUpdate;
+
+    /**
+     * The component bindings
+     */
+    EditText editTitle;
+    EditText editContent;
+
+    /**
+     * The timer for saving the record back to SQL
+     */
+    Handler timer = new Handler();
+    Runnable timerTask = new Runnable() {
+        @Override
+        public void run() {
+            saveData();                             // Save the data
+            timer.postDelayed(timerTask, 5000);     // Every 5 seconds
+        }
+    };
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -37,33 +76,88 @@ public class NoteDetailFragment extends Fragment {
     public NoteDetailFragment() {
     }
 
+    /**
+     * Lifecycle event handler - called when the fragment is created.
+     * @param savedInstanceState the saved state
+     */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (getArguments().containsKey(ARG_ITEM_ID)) {
-            // Load the dummy content specified by the fragment
-            // arguments. In a real-world scenario, use a Loader
-            // to load content from a content provider.
-            mItem = DummyContent.ITEM_MAP.get(getArguments().getString(ARG_ITEM_ID));
+        // Get the ContentResolver
+        contentResolver = getContext().getContentResolver();
 
-            Activity activity = this.getActivity();
-            CollapsingToolbarLayout appBarLayout = (CollapsingToolbarLayout) activity.findViewById(R.id.toolbar_layout);
-            if (appBarLayout != null) {
-                appBarLayout.setTitle(mItem.getTitle());
+        // Unbundle the arguments if any.  If there is an argument, load the data from
+        // the content resolver aka the content provider.
+        Bundle arguments = getArguments();
+        if (arguments != null && arguments.containsKey(ARG_ITEM_ID)) {
+            itemId = getArguments().getLong(ARG_ITEM_ID);
+            itemUri = ContentUris.withAppendedId(NotesContentContract.Notes.CONTENT_URI, itemId);
+            Cursor data = contentResolver.query(itemUri, NotesContentContract.Notes.PROJECTION_ALL, null, null, null);
+            if (data != null) {
+                data.moveToFirst();
+                mItem = Note.fromCursor(data);
+                isUpdate = true;
+            }
+        } else {
+            mItem = new Note();
+            isUpdate = false;
+        }
+
+        // Start the timer for the delayed start
+        timer.postDelayed(timerTask, 5000);
+    }
+
+    /**
+     * Lifecycle event handler - called when the fragment is paused.  Use this to do any
+     * saving of data as it is the last opportunity to reliably do so.
+     */
+    @Override
+    public void onPause() {
+        super.onPause();
+        timer.removeCallbacks(timerTask);
+        saveData();
+    }
+
+    /**
+     * Save the data from the form back into the database.
+     */
+    private void saveData() {
+        // Save the edited text back to the item.
+        boolean isUpdated = false;
+        if (mItem.getTitle() != editTitle.getText().toString().trim()) {
+            mItem.setTitle(editTitle.getText().toString().trim());
+            mItem.setUpdated(DateTime.now(DateTimeZone.UTC));
+            isUpdated = true;
+        }
+        if (mItem.getContent() != editContent.getText().toString().trim()) {
+            mItem.setContent(editContent.getText().toString().trim());
+            mItem.setUpdated(DateTime.now(DateTimeZone.UTC));
+            isUpdated = true;
+        }
+
+        // Convert to ContentValues and store in the database.
+        if (isUpdated) {
+            ContentValues values = mItem.toContentValues();
+            if (isUpdate) {
+                contentResolver.update(itemUri, values, null, null);
+            } else {
+                itemUri = contentResolver.insert(NotesContentContract.Notes.CONTENT_URI, values);
             }
         }
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        // Get a reference to the root view
         View rootView = inflater.inflate(R.layout.note_detail, container, false);
 
-        // Show the dummy content as text in a TextView.
-        if (mItem != null) {
-            ((TextView) rootView.findViewById(R.id.note_detail)).setText(mItem.getContent());
-        }
+        // Update the text in the editor
+        editTitle = (EditText) rootView.findViewById(R.id.edit_title);
+        editContent = (EditText) rootView.findViewById(R.id.edit_content);
+
+        editTitle.setText(mItem.getTitle());
+        editContent.setText(mItem.getContent());
 
         return rootView;
     }
